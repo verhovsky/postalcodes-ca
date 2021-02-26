@@ -1,56 +1,105 @@
-### pypostalcode
+# postalcodes-ca
 
-This is a fork of Nathan Van Gheem's excellent pyzipcode package.  The zipcode database has been replaced with Canadian cities and their postal codes. The general usage is the same.
-        
-Canadian postal codes are six characters with this format: A1A 1A1, where A is a letter and 1 is a digit, with a space separating the third and fourth characters. The first three digits are the Forward Sortation Area ©  (FSA), and the last three are the Local Delivery Unit (LDU). The FSA information is available from the report "Forward Sortation Area Boundary File, 2011 Census. Statistics Canada Catalogue no. 92-179-X" retrieved from
- `http://www12.statcan.gc.ca/census-recensement/2011/geo/bound-limit/bound-limit-2011-eng.cfm`
+This is a fork of Scott Rodkey's [`pypostalcode`](https://pypi.org/project/pypostalcode/) package, which is itself a fork of Nathan Van Gheem's [`pyzipcode`](https://pypi.org/project/pyzipcode/) package. The zipcode database has been replaced with Canadian cities and their postal codes. The general usage is similar.
 
-This module only uses the FSA designator for location. There are over 800,000 FSA+LDU combinations, but the 1,620 unique FSA values provide coarse resolution for most applications.
+## Primer on Canadian postal codes
+
+[Canadian postal codes](https://en.wikipedia.org/wiki/Postal_codes_in_Canada) are six characters in this format:
+
+`A1A 1A1`
+
+where `A` is a letter and `1` is a digit, with a space separating the third and fourth characters. The first three digits are the **Forward Sortation Area** (**FSA**), and the last three are the **Local Delivery Unit** (**LDU**). 
+
+This module only supports looking up FSA codes. There are over 878,000 FSA+LDU combinations, but the 1,655 (+1 for Santa) unique FSA values provide coarse resolution for most applications.
+
+Read the [Postal codes in Canada](https://en.wikipedia.org/wiki/Postal_codes_in_Canada) article on Wikipedia for more information.
+
+The data is from [GeoNames](https://www.geonames.org/) https://download.geonames.org/export/zip/ which is distributed under a [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) license. Please respect the license if you use this module.
+
+## Install
 
 To install:
 
 ```
-pip install pypostalcode
+pip install postalcodes-ca
 ```
 
-Basic usage:
 
+## Usage
 
+```pycon
+>>> from postalcodes_ca import fsa_codes
+>>> fsa_codes['V5K']
+FSACode(fsa='V5K', name='Vancouver (North Hastings-Sunrise)', province='British Columbia', latitude=49.2807, longitude=-123.0397, accuracy=6)
+>>> fsa_codes.get('V5K')
+FSACode(fsa='V5K', name='Vancouver (North Hastings-Sunrise)', province='British Columbia', latitude=49.2807, longitude=-123.0397, accuracy=6)
+>>> fsa_codes.get('v5k')
+[...]
+ValueError: invalid FSA, must start with one of ABCEGHJKLMNPRSTVXY: 'v5k'
+>>> fsa_codes.get('v5kblahblah', strict=False)  # only the first 3 characters are used
+FSACode(fsa='V5K', name='Vancouver (North Hastings-Sunrise)', province='British Columbia', latitude=49.2807, longitude=-123.0397, accuracy=6)
 ```
-	>>> from pypostalcode import PostalCodeDatabase
-	>>> pcdb = PostalCodeDatabase()
-	>>> pc = 'V5K'
-	>>> location = pcdb[pc]
-	>>> location.postalcode
-	u'V5K'
-	>>> location.city
-	u'Vancouver (North Hastings- Sunrise)'
-	>>> location.province
-	u'British Columbia'
-	>>> location.longitude
-	-123.0489
-	>>> location.latitude
-	49.293
-	>>> location.timezone
-	-8
-```	
 
-Get a list of postal codes given a radius in kilometers:
+Get a list of postal codes given a radius in kilometers 
 
-```	
-	>>> from pypostalcode import PostalCodeDatabase
-	>>> pcdb = PostalCodeDatabase()
-	>>> pc = 'T3Z'
-	>>> radius = 25
-	>>> results = pcdb.get_postalcodes_around_radius(pc, radius)
-	>>> for r in results:
-	>>>     ''.join([r.postalcode, ": ", r.city, ", ", r.province])
-    u'T3B: Calgary (Montgomery / Bowness / Silver Springs / Greenwood), Alberta'
-	u'T3G: Calgary (Hawkwood / Arbour Lake / Royal Oak / Rocky Ridge), Alberta'
-	u'T3H: Calgary (Discovery Ridge / Signal Hill / Aspen Woods / Patterson / Cougar Ridge), Alberta'
-	u'T3L: Calgary (Tuscany / Scenic Acres), Alberta'
-	u'T3R: Calgary Northwest, Alberta'
-	u'T3Z: Redwood Meadows, Alberta'
-	u'T4C: Cochrane, Alberta'
+```pycon
+>>> results = fsa_codes.get_nearby('V5K', radius=4)
+>>> for r in results:
+...     print(f"{r.fsa}: {r.name}, {r.province}")
+... 
+V5K: Vancouver (North Hastings-Sunrise), British Columbia
+V5L: Vancouver (North Grandview-Woodlands), British Columbia
+V5M: Vancouver (South Hastings-Sunrise / North Renfrew-Collingwood), British Columbia
+V5N: Vancouver (South Grandview-Woodlands / NE Kensington), British Columbia
+V7L: North Vancouver South Central, British Columbia
+V5C: Burnaby (Burnaby Heights / Willingdon Heights / West Central Valley), British Columbia
+V5G: Burnaby (Cascade-Schou / Douglas-Gilpin), British Columbia
 ```
-© This data includes information copied with permission from Canada Post Corporation.
+
+if you have miles, multiply by `1.609344`. Note that this is actually a square, not a circle with a radius.
+
+Search by FSA code, city name or province name:
+
+``` pycon
+>>> fsa_codes.search(name='Calgary')
+[FSACode(fsa='T3S', name='Calgary', province='Alberta', latitude=50.9153, longitude=-113.8932, accuracy=4)]
+>>> len(fsa_codes.search(name='Calgary%'))
+35
+>>> len(fsa_codes.search(fsa='T2%'))
+20
+>>> len(fsa_codes.search(province='Alberta'))
+154
+>>> fsa_codes.search(province='California')  # returns None
+>>>
+```
+
+### Notes
+
+There is the special Postal Code for Santa (who lives at the North Pole), `H0H 0H0`, which looks like this:
+
+``` python
+>>> fsa_codes['H0H']
+FSACode(fsa='H0H', name='Reserved (Santa Claus)', province='Quebec', latitude=90.0, longitude=0.0, accuracy=None)
+```
+
+## Development
+
+### How to contribute to the data
+
+If you notice an issue with the data, you can report it by creating a GitHub account and
+[creating a new issue](https://github.com/verhovsky/postalcodes-ca/issues/new).
+
+If you want to fix the issue yourself, then look at
+[`CA.txt`](https://github.com/verhovsky/postalcodes-ca/blob/master/CA.txt),
+figure out what needs to be changed and report the issue to the GeoNames
+project. Once it is fixed upstream you can create an issue on `postalcodes-ca`
+to tell us to update the data.
+
+### How to update the vendored data
+
+0) `cd` into the same directory as this readme file
+1) Go to https://download.geonames.org/export/zip/
+2) click on `CA.zip` (not `CA_full.csv.zip`)
+3) unzip the file into this directory with `unzip CA.zip`, thereby overwriting the `CA.txt` that already exists in the repo
+4) see what was updated using the `git diff` command
+5) if there *are* changes and they look good to you, run `python3 postalcodes-ca/import.py`
