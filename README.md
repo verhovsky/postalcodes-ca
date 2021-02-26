@@ -56,7 +56,7 @@ V5C: Burnaby (Burnaby Heights / Willingdon Heights / West Central Valley), Briti
 V5G: Burnaby (Cascade-Schou / Douglas-Gilpin), British Columbia
 ```
 
-if you have miles, multiply by `1.609344`. Note that this is actually a square, not a circle with a radius.
+if you have miles, multiply by `1.609344`. Note that this actually searches a square area, not a circle with a radius.
 
 Search by FSA code, city name or province name:
 
@@ -90,7 +90,7 @@ If you notice an issue with the data, you can report it by creating a GitHub acc
 [creating a new issue](https://github.com/verhovsky/postalcodes-ca/issues/new).
 
 If you want to fix the issue yourself, then look at
-[`CA.txt`](https://github.com/verhovsky/postalcodes-ca/blob/master/CA.txt),
+[`CA.tsv`](https://github.com/verhovsky/postalcodes-ca/blob/master/CA.tsv),
 figure out what needs to be changed and report the issue to the GeoNames
 project. Once it is fixed upstream you can create an issue on `postalcodes-ca`
 to tell us to update the data.
@@ -98,8 +98,9 @@ to tell us to update the data.
 ### How to update the vendored data
 
 0) `cd` into the same directory as this readme file
-1) Go to https://download.geonames.org/export/zip/
-2) click on `CA.zip` (not `CA_full.csv.zip`)
-3) unzip the file into this directory with `unzip CA.zip`, thereby overwriting the `CA.txt` that already exists in the repo
-4) see what was updated using the `git diff` command
-5) if there *are* changes and they look good to you, run `python3 postalcodes-ca/import.py`
+1) go to https://download.geonames.org/export/zip/
+2) download click on `CA.zip` (not `CA_full.csv.zip`)
+3) unzip the file into this directory with `unzip CA.zip CA.txt`
+4) compare the file you just downloaded with the that's already used with `diff CA.tsv CA.txt`. If that command produces no output, there's nothing more to do
+5) rename `CA.txt` to `CA.tsv` with `mv CA.txt CA.tsv` (we rename the file so that it renders nicely on GitHub)
+6) run `python3 postalcodes-ca/import.py` to update `postalcodes-ca/postalcodes.db` file
