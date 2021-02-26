@@ -26,7 +26,7 @@ c.execute("CREATE INDEX name_index ON FSACodes(name);")
 c.execute("CREATE INDEX province_index ON FSACodes(province);")
 
 
-with open("CA.txt", newline="", encoding="utf-8") as f:
+with open("CA.tsv", newline="", encoding="utf-8") as f:
     reader = csv.reader(f, delimiter="\t")
     for idx, row in enumerate(reader, start=1):
         # country code      : iso country code, 2 characters
