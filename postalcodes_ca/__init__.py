@@ -20,13 +20,18 @@ def parse_fsa(fsa, strict=False):
         raise ValueError(f"invalid FSA, must be 3 characters: {str(fsa)!r}")
 
     if fsa[0] not in POSTAL_CODE_FIRST_LETTER_ALPHABET:
-        raise ValueError(f"invalid FSA, must start with one of {POSTAL_CODE_FIRST_LETTER_ALPHABET}: {str(fsa)!r}")
+        raise ValueError(
+            f"invalid FSA, must start with one of {POSTAL_CODE_FIRST_LETTER_ALPHABET}: {str(fsa)!r}"
+        )
     if fsa[1] not in string.digits:
         raise ValueError(f"invalid FSA, second character must be a digit: {str(fsa)!r}")
     if fsa[2] not in POSTAL_CODE_ALPHABET:
-        raise ValueError(f"invalid FSA, third character must be one of {POSTAL_CODE_ALPHABET}: {str(fsa)!r}")
+        raise ValueError(
+            f"invalid FSA, third character must be one of {POSTAL_CODE_ALPHABET}: {str(fsa)!r}"
+        )
 
     return fsa[:3]
+
 
 def parse_postal_code(pc, strict=False):
     if not strict:
@@ -38,7 +43,7 @@ def parse_postal_code(pc, strict=False):
     else:
         if len(pc) < 6:
             raise ValueError(f"invalid postal code, too short: {str(pc)!r}")
-        if ' ' in pc[:7] and len(pc) < 7:
+        if " " in pc[:7] and len(pc) < 7:
             raise ValueError(f"invalid postal code, too short: {str(pc)!r}")
 
     try:
@@ -46,24 +51,31 @@ def parse_postal_code(pc, strict=False):
     except ValueError as fsa_error:
         raise ValueError(f"invalid postal code, " + str(fsa_error))
 
-    if strict and pc[3] != ' ':
+    if strict and pc[3] != " ":
         raise ValueError(f"invalid postal code, must include a space: {str(pc)!r}")
 
-    ldu = pc[4:7] if pc[3] == ' ' else pc[3:6]
+    ldu = pc[4:7] if pc[3] == " " else pc[3:6]
 
     if ldu[0] not in string.digits:
-        raise ValueError(f"invalid postal code, fourth character must be a digit: {str(pc)!r}")
+        raise ValueError(
+            f"invalid postal code, fourth character must be a digit: {str(pc)!r}"
+        )
     if ldu[1] not in POSTAL_CODE_ALPHABET:
-        raise ValueError(f"invalid postal code, fifth character must be one of {POSTAL_CODE_ALPHABET}: {str(pc)!r}")
+        raise ValueError(
+            f"invalid postal code, fifth character must be one of {POSTAL_CODE_ALPHABET}: {str(pc)!r}"
+        )
     if ldu[2] not in string.digits:
-        raise ValueError(f"invalid postal code, sixth character must be a digit: {str(pc)!r}")
+        raise ValueError(
+            f"invalid postal code, sixth character must be a digit: {str(pc)!r}"
+        )
 
-    return fsa + ' ' + ldu
+    return fsa + " " + ldu
 
 
 @dataclass
 class Code:
     """A base class used for postal codes and FSA codes"""
+
     code: str
     name: str
     province: str
@@ -94,22 +106,25 @@ class Code:
         # TODO: are there any exceptions?
         return self.code[1] == "0"
 
+
 @dataclass
 class FSA(Code):
     """The first 3 characters of a Canadian postal code"""
+
     accuracy: int
 
     _parse = parse_fsa
 
+
 @dataclass
 class PostalCode(Code):
     """A 6 character Canadian postal code"""
+
     _parse = parse_postal_code
 
     @property
     def accuracy(self):
         return 6
-
 
 
 class ConnectionManager:
@@ -128,7 +143,9 @@ class ConnectionManager:
             except sqlite3.OperationalError:
                 time.sleep(0.001)
         else:
-            raise sqlite3.OperationalError("Can't connect to sqlite database at " + str(db_location))
+            raise sqlite3.OperationalError(
+                "Can't connect to sqlite database at " + str(db_location)
+            )
 
         cursor = conn.cursor()
         cursor.execute(sql, args)
@@ -136,14 +153,19 @@ class ConnectionManager:
         conn.close()
         return res
 
+
 QUERY = "SELECT * FROM {table_name} WHERE code=?"
 RANGE_QUERY = "SELECT * FROM {table_name} WHERE longitude >= ? and longitude <= ? AND latitude >= ? and latitude <= ?"
-FIND_QUERY = "SELECT * FROM {table_name} WHERE code LIKE ? AND name LIKE ? AND province LIKE ?"
+FIND_QUERY = (
+    "SELECT * FROM {table_name} WHERE code LIKE ? AND name LIKE ? AND province LIKE ?"
+)
 ALL_QUERY = "SELECT * FROM {table_name}"
 LEN_QUERY = "SELECT COUNT(*) FROM {table_name}"
 
-POSTAL_CODE_ALPHABET = 'ABCEGHJKLMNPRSTVWXYZ'  # postal codes don't use D, F, I, O, Q or U
-POSTAL_CODE_FIRST_LETTER_ALPHABET = 'ABCEGHJKLMNPRSTVXY'  # additionally, the first letter doesn't use W or Z
+# postal codes don't use D, F, I, O, Q or U
+POSTAL_CODE_ALPHABET = "ABCEGHJKLMNPRSTVWXYZ"
+# additionally, the first letter doesn't use W or Z
+POSTAL_CODE_FIRST_LETTER_ALPHABET = "ABCEGHJKLMNPRSTVXY"
 
 # TODO: check if using sets for the above improves performance
 
@@ -151,11 +173,14 @@ POSTAL_CODE_FIRST_LETTER_ALPHABET = 'ABCEGHJKLMNPRSTVXY'  # additionally, the fi
 class CodeNotFoundException(Exception):
     pass
 
+
 class FSANotFoundException(CodeNotFoundException):
     pass
 
+
 class PostalCodeNotFoundException(CodeNotFoundException):
     pass
+
 
 class CodeDatabase(Mapping):
     result_type = Code
@@ -181,10 +206,10 @@ class CodeDatabase(Mapping):
 
         radius = float(radius)
 
-        '''
+        """
         Bounding box calculations updated from pyzipcode
-        '''
-        earth_radius  = 6371
+        """
+        earth_radius = 6371
         dlat = radius / earth_radius
         dlon = asin(sin(dlat) / cos(radians(code.latitude)))
         lat_delta = degrees(dlat)
@@ -195,13 +220,15 @@ class CodeDatabase(Mapping):
         else:
             lat_range = (code.latitude - lat_delta, code.latitude + lat_delta)
 
-        long_range  = (code.longitude - lat_delta, code.longitude + lon_delta)
+        long_range = (code.longitude - lat_delta, code.longitude + lon_delta)
 
         # TODO: return empty list instead of None?
-        return self._format_result(self.conn_manager.query(self.RANGE_QUERY, (
-            long_range[0], long_range[1],
-            lat_range[0], lat_range[1]
-        )))
+        return self._format_result(
+            self.conn_manager.query(
+                self.RANGE_QUERY,
+                (long_range[0], long_range[1], lat_range[0], lat_range[1]),
+            )
+        )
 
     def search(self, code=None, name=None, province=None):
         # TODO: allow passing an FSA/PostalCode object?
@@ -222,7 +249,9 @@ class CodeDatabase(Mapping):
             province = province.upper()
 
         # TODO: return empty list instead of None?
-        return self._format_result(self.conn_manager.query(self.FIND_QUERY , (code, name, province)))
+        return self._format_result(
+            self.conn_manager.query(self.FIND_QUERY, (code, name, province))
+        )
 
     def get(self, code, default=None, strict=True):
         if isinstance(code, self.result_type):

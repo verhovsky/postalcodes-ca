@@ -19,6 +19,7 @@ def log_error(msg, row, row_idx=None):
         msg = f"{msg}: row {row_idx: <6} {row!r}"
     print(msg, file=sys.stderr)
 
+
 def read_codes(filename):
     codes = {}
     with open(filename, newline="", encoding="utf-8") as f:
@@ -48,7 +49,20 @@ def read_codes(filename):
             # The admininstrative divisions (the 4 ignored fields) are always empty,
             # which you can verify with
             # xsv select 6,7,8,9 -d'\t' CA_full.txt  | sort | uniq
-            country_code, code, name, province, province_code, _, _, _, _, lat, longt, accuracy, = row
+            (
+                country_code,
+                code,
+                name,
+                province,
+                province_code,
+                _,
+                _,
+                _,
+                _,
+                lat,
+                longt,
+                accuracy,
+            ) = row
 
             if country_code != "CA":
                 log_error(f"country code {country_code!r} isn't 'CA'", row, idx)
@@ -62,7 +76,14 @@ def read_codes(filename):
                 log_error(f"code is too short {code!r}", row, idx)
                 continue
 
-            for var, val in [("code", code), ("name", name), ("province", province), ("province_code", province_code), ("lat", lat), ("longt", longt)]:
+            for var, val in [
+                ("code", code),
+                ("name", name),
+                ("province", province),
+                ("province_code", province_code),
+                ("lat", lat),
+                ("longt", longt),
+            ]:
                 if val != val.strip():
                     log_error(f"{var} contains whitespace", row, idx)
                 if not val:
@@ -96,19 +117,30 @@ def read_codes(filename):
                     log_error("accuracy for postal codes must be '6'", row, idx)
 
             if code in codes:
-                diff_vals = sum(orig != dup for dup, orig in zip((code, name, province, lat, longt, accuracy), codes[code]))
+                diff_vals = sum(
+                    orig != dup
+                    for dup, orig in zip(
+                        (code, name, province, lat, longt, accuracy), codes[code]
+                    )
+                )
                 if diff_vals:
-                    log_error(f'duplicate with {diff_vals} different value(s) {codes[code]!r}', row, idx)
+                    log_error(
+                        f"duplicate with {diff_vals} different value(s) {codes[code]!r}",
+                        row,
+                        idx,
+                    )
                     # sys.exit(1)
             else:
                 codes[code] = (code, name, province, lat, longt, accuracy)
     return codes.values()
 
+
 os.remove(db_location)
 conn = sqlite3.connect(db_location)
 c = conn.cursor()
 c.execute("DROP TABLE IF EXISTS FSACodes;")
-c.execute("""\
+c.execute(
+    """\
 CREATE TABLE FSACodes(
     code VARCHAR(3) NOT NULL,
     name VARCHAR(180) NOT NULL,
@@ -117,7 +149,8 @@ CREATE TABLE FSACodes(
     latitude DOUBLE NOT NULL,
     longitude DOUBLE NOT NULL,
     accuracy INT
-);""")
+);"""
+)
 c.execute("CREATE INDEX fsa_code_index ON FSACodes(code);")
 c.execute("CREATE INDEX fsa_name_index ON FSACodes(name);")
 c.execute("CREATE INDEX fsa_province_index ON FSACodes(province);")
@@ -126,14 +159,16 @@ for row in read_codes(FSA_FILE):
     c.execute("INSERT INTO FSACodes values(?,?,?,?,?,?)", row)
 
 c.execute("DROP TABLE IF EXISTS PostalCodes;")
-c.execute("""\
+c.execute(
+    """\
 CREATE TABLE PostalCodes(
     code VARCHAR(7) NOT NULL,
     name VARCHAR(180) NOT NULL,
     province VARCHAR(100) NOT NULL,
     latitude DOUBLE NOT NULL,
     longitude DOUBLE NOT NULL
-);""")
+);"""
+)
 # These indeces double the file size of postalcodes.db
 c.execute("CREATE INDEX postal_code_index ON PostalCodes(code);")
 c.execute("CREATE INDEX postal_name_index ON PostalCodes(name);")
@@ -141,7 +176,7 @@ c.execute("CREATE INDEX postal_province_index ON PostalCodes(province);")
 
 postal_codes = read_codes(POSTAL_CODES_FILE)
 # Santa's postal code is missing from the postal codes but not from the FSA codes
-SANTA = ('H0H 0H0', 'Reserved (Santa Claus)', 'Quebec', 90, 0, 6)
+SANTA = ("H0H 0H0", "Reserved (Santa Claus)", "Quebec", 90, 0, 6)
 for postal_code in list(postal_codes) + [SANTA]:
     # don't include accuracy, it's always 6
     c.execute("INSERT INTO PostalCodes values(?,?,?,?,?)", postal_code[:-1])

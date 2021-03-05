@@ -13,11 +13,13 @@ from postalcodes_ca import POSTAL_CODE_ALPHABET, POSTAL_CODE_FIRST_LETTER_ALPHAB
 def test_get():
     res = fsa_codes.get("T2S")
     assert isinstance(res, FSA)
-    res = postal_codes.get('M5V 3L9')
+    res = postal_codes.get("M5V 3L9")
     assert isinstance(res, PostalCode)
 
+
 def test_parse_postal_code():
-    assert parse_postal_code('M5V 3L9') == 'M5V 3L9'
+    assert parse_postal_code("M5V 3L9") == "M5V 3L9"
+
 
 def test_parse_fsa():
     with pytest.raises(ValueError):
@@ -33,34 +35,38 @@ def test_parse_fsa():
     with pytest.raises(ValueError):
         fsa_codes.get("T2", strict=False)
 
-    for fsa in itertools.product(POSTAL_CODE_FIRST_LETTER_ALPHABET, digits, POSTAL_CODE_ALPHABET):
-        parse_fsa(''.join(fsa))
+    for fsa in itertools.product(
+        POSTAL_CODE_FIRST_LETTER_ALPHABET, digits, POSTAL_CODE_ALPHABET
+    ):
+        parse_fsa("".join(fsa))
 
     invalid_first_letter = set(ascii_uppercase) - set(POSTAL_CODE_FIRST_LETTER_ALPHABET)
     for fsa in itertools.product(invalid_first_letter, digits, ascii_uppercase):
-        fsa = ''.join(fsa)
+        fsa = "".join(fsa)
         with pytest.raises(ValueError):
             parse_fsa(fsa)
 
     invalid_second_letter = set(ascii_uppercase) - set(POSTAL_CODE_ALPHABET)
     for fsa in itertools.product(ascii_uppercase, digits, invalid_second_letter):
-        fsa = ''.join(fsa)
+        fsa = "".join(fsa)
         with pytest.raises(ValueError):
             parse_fsa(fsa)
 
+
 def test_parse_postal_code_not_strict():
-    assert parse_postal_code('M5V 3L9', strict=False) == 'M5V 3L9'
-    assert parse_postal_code('m5v 3L9', strict=False) == 'M5V 3L9'
-    assert parse_postal_code('m5V3L9', strict=False) == 'M5V 3L9'
-    assert parse_postal_code('m5V3L9aaaaa', strict=False) == 'M5V 3L9'
+    assert parse_postal_code("M5V 3L9", strict=False) == "M5V 3L9"
+    assert parse_postal_code("m5v 3L9", strict=False) == "M5V 3L9"
+    assert parse_postal_code("m5V3L9", strict=False) == "M5V 3L9"
+    assert parse_postal_code("m5V3L9aaaaa", strict=False) == "M5V 3L9"
     with pytest.raises(ValueError):
-        parse_postal_code('M5V    ', strict=False)
+        parse_postal_code("M5V    ", strict=False)
     with pytest.raises(ValueError):
-        parse_postal_code('Z5V3L9', strict=False)
-    assert parse_postal_code('M5V3L9       ', strict=False) == 'M5V 3L9'
-    assert parse_postal_code('M5V3L9 ', strict=False) == 'M5V 3L9'
+        parse_postal_code("Z5V3L9", strict=False)
+    assert parse_postal_code("M5V3L9       ", strict=False) == "M5V 3L9"
+    assert parse_postal_code("M5V3L9 ", strict=False) == "M5V 3L9"
     with pytest.raises(ValueError):
-        parse_postal_code('M5V3L ', strict=False)
+        parse_postal_code("M5V3L ", strict=False)
+
 
 def test_parse_fsa_not_strict():
     with pytest.raises(ValueError):
@@ -75,19 +81,21 @@ def test_parse_fsa_not_strict():
     with pytest.raises(ValueError):
         fsa_codes.get("T2", strict=False)
 
-    for fsa in itertools.product(POSTAL_CODE_FIRST_LETTER_ALPHABET, digits, POSTAL_CODE_ALPHABET):
-        parse_fsa(''.join(fsa), strict=False)
+    for fsa in itertools.product(
+        POSTAL_CODE_FIRST_LETTER_ALPHABET, digits, POSTAL_CODE_ALPHABET
+    ):
+        parse_fsa("".join(fsa), strict=False)
 
     # TODO: should strict=False accept any letter?
     invalid_first_letter = set(ascii_uppercase) - set(POSTAL_CODE_FIRST_LETTER_ALPHABET)
     for fsa in itertools.product(invalid_first_letter, digits, ascii_uppercase):
-        fsa = ''.join(fsa)
+        fsa = "".join(fsa)
         with pytest.raises(ValueError):
             parse_fsa(fsa, strict=False)
 
     invalid_second_letter = set(ascii_uppercase) - set(POSTAL_CODE_ALPHABET)
     for fsa in itertools.product(ascii_uppercase, digits, invalid_second_letter):
-        fsa = ''.join(fsa)
+        fsa = "".join(fsa)
         with pytest.raises(ValueError):
             parse_fsa(fsa, strict=False)
 
@@ -95,6 +103,7 @@ def test_parse_fsa_not_strict():
 def test_get_not_strict():
     res = fsa_codes.get("t2s", strict=False)
     assert isinstance(res, FSA)
+
 
 def test_get_types():
     postal_code = postal_codes["M5V 3L9"]
@@ -105,6 +114,7 @@ def test_get_types():
         fsa_codes[postal_code]
     fsa_codes[fsa] == fsa
     postal_codes[postal_code] == postal_code
+
 
 def test_search_types():
     postal_code = postal_codes["M5V 3L9"]
@@ -117,6 +127,7 @@ def test_search_types():
         postal_codes.search(code=postal_code)
     with pytest.raises(AttributeError):
         postal_codes.search(code=fsa)
+
 
 def test_key_lookup_and_get_nearby():
     code = "T2S"
@@ -141,6 +152,7 @@ def test_accuracy_can_be_none():
     # the one for the North Pole should never have an accuracy
     fsa = fsa_codes["H0H"]
     assert fsa.accuracy is None
+
 
 def test_search():
     res = fsa_codes.search(code="T2%")
