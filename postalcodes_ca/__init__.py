@@ -159,7 +159,7 @@ RANGE_QUERY = "SELECT * FROM {table_name} WHERE longitude >= ? and longitude <= 
 FIND_QUERY = (
     "SELECT * FROM {table_name} WHERE code LIKE ? AND name LIKE ? AND province LIKE ?"
 )
-ALL_QUERY = "SELECT * FROM {table_name}"
+ALL_QUERY = "SELECT code FROM {table_name}"
 LEN_QUERY = "SELECT COUNT(*) FROM {table_name}"
 
 # postal codes don't use D, F, I, O, Q or U
@@ -183,9 +183,9 @@ class PostalCodeNotFoundException(CodeNotFoundException):
 
 
 class CodeDatabase(Mapping):
-    result_type = Code
-    not_found_exception = CodeNotFoundException
-    parse = lambda x: x
+    _type = Code
+    _not_found_exception = CodeNotFoundException
+    _parse = lambda x: x
 
     def __init__(self, conn_manager=None):
         if conn_manager is None:
@@ -194,7 +194,7 @@ class CodeDatabase(Mapping):
 
     def _format_result(self, codes):
         if codes:
-            return [self.result_type(*code) for code in codes]
+            return [self._type(*code) for code in codes]
         return None
 
     def get_nearby(self, code, radius):
@@ -202,7 +202,7 @@ class CodeDatabase(Mapping):
         # use this: https://stackoverflow.com/a/39298241
         code = self.get(code)
         if code is None:
-            raise self.not_found_exception("Could not find code " + str(code))
+            raise self._not_found_exception("Could not find code " + str(code))
 
         radius = float(radius)
 
@@ -254,15 +254,16 @@ class CodeDatabase(Mapping):
         )
 
     def get(self, code, default=None, strict=True):
-        if isinstance(code, self.result_type):
+        if isinstance(code, self._type):
             code = code.code
         if not isinstance(code, str):
-            raise TypeError('expected string or {self.result_type}, got "{type(code)}"')
-        code = self.parse(code, strict)
+            raise TypeError(f'expected string or {self._type}, got "{type(code)}"')
+        code = self._parse(code, strict)
         results = self._format_result(self.conn_manager.query(self.QUERY, (code,)))
         if results is None:
             return default
         if len(results) > 1:
+            # TODO: ValueError isn't right for a DB or validation issue
             raise ValueError(f"looking up {code!r} returned {len(results)} results")
         return results[0]
 
@@ -273,19 +274,18 @@ class CodeDatabase(Mapping):
         return res
 
     def __iter__(self):
-        results = self.conn_manager.query(self.ALL_QUERY)
-        for res in results:
-            yield self.result_type(*res)
+        for res in self.conn_manager.query(self.ALL_QUERY):
+            yield res[0]
 
     def __len__(self):
         return self.conn_manager.query(self.LEN_QUERY)[0][0]
 
 
 class FSADatabase(CodeDatabase):
-    result_type = FSA
-    not_found_exception = FSANotFoundException
+    _type = FSA
+    _not_found_exception = FSANotFoundException
 
-    def parse(self, *args, **kwargs):
+    def _parse(self, *args, **kwargs):
         return parse_fsa(*args, **kwargs)
 
     QUERY = QUERY.format(table_name="FSACodes")
@@ -296,10 +296,10 @@ class FSADatabase(CodeDatabase):
 
 
 class PostalCodeDatabase(CodeDatabase):
-    result_type = PostalCode
-    not_found_exception = PostalCodeNotFoundException
+    _type = PostalCode
+    _not_found_exception = PostalCodeNotFoundException
 
-    def parse(self, *args, **kwargs):
+    def _parse(self, *args, **kwargs):
         return parse_postal_code(*args, **kwargs)
 
     QUERY = QUERY.format(table_name="PostalCodes")

@@ -112,8 +112,8 @@ def test_get_types():
         postal_codes[fsa]
     with pytest.raises(TypeError):
         fsa_codes[postal_code]
-    fsa_codes[fsa] == fsa
-    postal_codes[postal_code] == postal_code
+    fsa_codes[fsa.code] == fsa
+    postal_codes[postal_code.code] == postal_code
 
 
 def test_search_types():
@@ -155,36 +155,37 @@ def test_accuracy_can_be_none():
 
 
 def test_search():
-    res = fsa_codes.search(code="T2%")
-
     expected_result_count = 20  # this could change
+
+    res = fsa_codes.search(code="T2%")
     assert len(res) <= len(POSTAL_CODE_ALPHABET)
+    assert len(res) == expected_result_count
+
+    res = fsa_codes.search(code="T2%", name="Calgary%")
     assert len(res) == expected_result_count
 
     res = fsa_codes.search(code="T%", name="Toronto%")
     assert res is None
 
-    res = fsa_codes.search(code="T2%", name="Calgary%")
-    assert len(res) == expected_result_count
 
-
+@pytest.mark.skip(".values() and .items() take minutes to run")
 def test_data():
     province_names = []
-    for code in fsa_codes:
-        province_names.append(code.province)
+    for code_obj in fsa_codes.values():
+        province_names.append(code_obj.province)
     assert len(set(province_names)) == 13
 
     # check that postal codes and FSAs use the same province names
-    for code in postal_codes:
-        province_names.append(code.province)
+    for code_obj in postal_codes.values():
+        province_names.append(code_obj.province)
     assert len(set(province_names)) == 13
     del province_names
 
     # check that codes are unique
-    print(Counter(p.code for p in postal_codes).most_common(1000))
-    assert Counter(p.code for p in postal_codes).most_common()[0][1] == 1
-    print(Counter(p.code for p in fsa_codes).most_common(20))
-    assert Counter(p.code for p in fsa_codes).most_common()[0][1] == 1
+    print(Counter(p.code for p in postal_codes.values()).most_common(1000))
+    assert Counter(p.code for p in postal_codes.values()).most_common()[0][1] == 1
+    print(Counter(p.code for p in fsa_codes.values()).most_common(20))
+    assert Counter(p.code for p in fsa_codes.values()).most_common()[0][1] == 1
 
 
 def test_len_and_iter():
